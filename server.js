@@ -25,6 +25,13 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     io.emit("message", "A user has left the chat");
   });
+
+  //Listen for chat message
+  //msg je poruka koja je submitana, i preko socket.on smo je dohvatili
+  socket.on("chatMessage", (msg) => {
+    //poruku zelimo svima emitati da je svi procitaju
+    io.emit("message", msg);
+  });
 });
 
 //gleda imamo li enviroment varijabalu PORT
