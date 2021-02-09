@@ -17,3 +17,4 @@ _ChatApp_ je realtime aplikacija za dopisivanje. Korisnik može odabrati neku od
 ## Funkcionalnosti
 
 - Odvojena komunikacija između različitih soba
+- Korisnik može lako napustit sobu i priključiti se novoj
