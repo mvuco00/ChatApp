@@ -2,6 +2,13 @@ const path = require("path");
 const http = require("http");
 const express = require("express");
 const socketio = require("socket.io");
+const formatMessage = require("./utils/messages");
+const {
+  joinUsers,
+  getUser,
+  userLeaves,
+  getRoomUsers,
+} = require("./utils/users");
 
 //app je objekt
 const app = express();
@@ -12,25 +19,41 @@ const io = socketio(server);
 //path je ugrađeni node module i trenutnom direktoriju se pridruzi onaj folder kojeg zelimo prikazat
 app.use(express.static(path.join(__dirname, "public")));
 
+const bot = "ChatApp Message";
 //Pokreni kad se klijent spoji
 io.on("connection", (socket) => {
-  //poruka se prikaze samo "meni", tj onome tko se prijavio u chat
-  socket.emit("message", "Wellcome to ChatApp"); //emit-anje poruka izmedu klijenta i servera, poruka se dohvati u main.js
+  //dohvat emitane poruke za spajanje u sobu
+  socket.on("joinRoom", ({ username, room }) => {
+    const user = joinUsers(socket.id, username, room);
+    socket.join(user.room);
 
-  //Broadcast when user connects => salje se poruka svima, osim onome tko se upravo spojio
-  //ako zelimo svima poslat ide io.emit()
-  socket.broadcast.emit("message", "User has joined chat");
+    //poruka se prikaze samo "meni", tj onome tko se prijavio u chat
+    socket.emit("message", formatMessage(bot, "Wellcome to ChatApp")); //emit-anje poruka izmedu klijenta i servera, poruka se dohvati u main.js
 
-  //Run when client disconnects
-  socket.on("disconnect", () => {
-    io.emit("message", "A user has left the chat");
+    //Broadcast when user connects => salje se poruka svima, osim onome tko se upravo spojio
+    //ako zelimo svima poslat ide io.emit()
+    socket.broadcast
+      .to(user.room)
+      .emit("message", formatMessage(bot, `${username} has joined chat`));
   });
 
   //Listen for chat message
   //msg je poruka koja je submitana, i preko socket.on smo je dohvatili
   socket.on("chatMessage", (msg) => {
+    const user = getUser(socket.id);
     //poruku zelimo svima emitati da je svi procitaju
-    io.emit("message", msg);
+    io.to(user.room).emit("message", formatMessage(user.username, msg));
+  });
+
+  //Run when client disconnects
+  socket.on("disconnect", () => {
+    const user = userLeaves(socket.id);
+    if (user) {
+      io.to(user.room).emit(
+        "message",
+        formatMessage(bot, `${user.username} has left the chat`)
+      );
+    }
   });
 });
 
